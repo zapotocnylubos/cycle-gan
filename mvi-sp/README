@@ -1,0 +1,8 @@
+Cílem je vybudovat GAN, který generuje 7000 obrázků ve stylu malíře Moneta z reálných fotografií
+
+Data lze nalézt na https://raw.githubusercontent.com/zapotocnylubos/cycle-gan/main/images.tar.gz
+
+Ale stahují se také automaticky na začátku Notebooku.
+
+Spustil lze Notebook například immportováním do Google Colab.
+

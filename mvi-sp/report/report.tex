@@ -1,0 +1,181 @@
+%% 
+%% Created in 2018 by Martin Slapak
+%%
+%% Based on file for NRP report LaTeX class by Vit Zyka (2008)
+%%
+%% Compilation:
+%% >pdflatex report
+%% >bibtex report
+%% >pdflatex report
+%% >pdflatex report
+
+\documentclass[czech]{mvi-report}
+
+\usepackage[utf8]{inputenc} 
+
+\title{Generování obrázků maleb z fotografií}
+
+\author{Luboš Zápotočný}
+\affiliation{ČVUT - FIT}
+\email{zapotlub@fit.cvut.cz}
+
+\def\file#1{{\tt#1}}
+
+\begin{document}
+
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Úvod}
+GAN se skládá ze dvou neuronových sítí: model generátoru a model diskriminátoru.
+
+Generátor je (hluboká) neuronová síť, která vytváří obrázky. Pro daný dataset se snažím generovat obrázky ve stylu malíře Moneta. Tento generátor je trénován pomocí diskriminátoru.
+
+Tyto dva modely pracují proti sobě, přičemž generátor se snaží oklamat diskriminátor a~diskriminátor se snaží přesně klasifikovat skutečné vs. generované obrázky.
+
+Cílem je vybudovat GAN, který generuje 7000 obrázků ve stylu malíře Moneta z reálných fotografií.
+
+Pro transformaci z reálné fotografie na obrázek, který se bude co nejvíce podobat malířskému stylu použiji jeden z modelů pro tzv. style transfer, konkrétně CycleGAN.
+
+Transformace obrázku na obrázek je problém, kde je cílem naučit se mapování mezi vstupním obrázkem a výstupním obrázkem pomocí trénovací sady zarovnaných párů obrázků. Zarovnané obrázky jsou takové, u kterých máme k dispozici zdrojový obrázek a také příslušný obrázek po transformaci. Bohužel takovýto dataset není vždy možné vytvořit. Například při transformaci zimní krajiny na letní bychom museli vyfotit mnoho míst v zimním období a na úplně stejném místě za 6 měsíců vytvořit ideálně úplně stejnou fotku. U jiných příkladů již takové mapování ani není možné vytvořit. Například u obrazů, které namalovali malíři před stovkami let se ani neví, kde dané namalované místo může být.
+
+Tvorba datasetu je tedy buď časově nebo peněžně velmi nákladná a v některých případech i nemožná. CycleGAN umožňuje vytrénovat model hlubokého učení, který se dokáže tuto transformaci naučit i bez zarovnaných (spárovaných) dat. \cite{GAN}, \cite{CycleGAN}, \cite{mosquera_2020}, \cite{kikaben_2022}, \cite{brownlee_2020_cyclegan}, \cite{brownlee_2020_conv}, \cite{brownlee_2019_batch}, \cite{brownlee_2019_norm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Vstupní data}
+
+Vstupní data jsem převzal ze soutěžního datasetu na webové stránce Kaggle.com
+
+Dataset obsahuje 300 obrázků (256x256 pixelů) některých částí obrazů od malíře Moneta.
+A obsahují více než 7000 fotografií různého druhu u kterých se očekává převedení stylu malby Moneta na tyto fotografie.
+
+Ukázka datasetu je vyobrazena na obrázku~\ref{fig:input-data}.
+
+\begin{figure}[h]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/paintings_photos}\vskip-0.5cm
+  \caption{Ukázka vstupních dat}
+  \label{fig:input-data}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Metody}
+
+Jako první bych chtěl zmínit, že bylo nutné přibližně skoro 10 hodin řešit výkon nahrávání obrázků z~Google disku, který byl připojen do běhového prostředí Google Colab.
+Takto vytvořené sítové připojení disku mělo velmi negativní dopad na rychlost načítaní dávek (batches) při nahrávání dat pro trénování modelů.
+
+Tento problém byl vyřešen efektivním archivačním algoritmem, který mi dovolil vstupní data (obrázky) uložit na vzdálené úložiště (github repozitář, archiv má < 100MB) a při inicializaci trénovacího Notebooku data stáhnout, extrahovat a používat jako lokální složku v běhovém prostředí. Efektivita čtení obrázků (z disku) se násobně zrychlila.
+
+Výzkum CycleGAN zmiňuje použití ResNET architektury, kterou jsem implementoval.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --- VYSLEDKY
+\section{Výsledky}
+
+Výsledný style transfer byl dokončen a navržený model byl trénován přes více než 60 epoch.
+
+Na výkonnější grafické kartě trénování modelu po jednu epochu trvá přihližně 15--20 minut.
+
+Průběh trénování se značně vylepšil po zavedení promíchání vstupních fotek při každé započaté epoše.
+
+Nastavení jednotlivých modelů (generátor, diktriminátor) bylo co nejvíce přiblíženo k původnímu výzkumu~\cite{CycleGAN}.
+
+Obrázek~\ref{fig:epoch-58} vyobrazuje generované malby z příslušných fotek.
+Tato epocha měla velmi malou chybovost a ochylku.
+
+\begin{figure}[h]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/epochs/e58}\vskip-0.5cm
+  \caption{Epocha 58}
+  \label{fig:epoch-58}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --- ZAVER
+\section{Závěr}
+
+Základní struktura trénovacích komponent byla vytvořena a byl vyřešen problém pomalého načítání z~Google disku na běhovém prostředí Google Colab.
+
+Práce byla dokončena a~modely pro většinu epoch byly uloženy jako checkpointy, aby bylo možné v~trénování pokračovat.
+Komponenty generátorů a~diskriminátorů jsou již připravené a mohou být v následujících iteracích vylepšovány tak, aby obsahovali co nejvíce poznatků z výzkumu CycleGAN a~dosahovaly ještě lepších výsledků.
+
+Rád bych tuto práci využil jako reprezentativní práci v nadcházejících projektech a chtěl bych vytrénovaný model vyzkoušet na real-time převodu videa. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --- Bibliography
+
+%\bibliographystyle{plain-cz-online}
+\bibliography{reference}
+
+\begin{figure}[h!]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/epochs/e00}\vskip-0.5cm
+  \caption{Epocha 0}
+  \label{fig:epoch-0}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/epochs/e01}\vskip-0.5cm
+  \caption{Epocha 1}
+  \label{fig:epoch-1}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/epochs/e03}\vskip-0.5cm
+  \caption{Epocha 3}
+  \label{fig:epoch-3}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/epochs/e05}\vskip-0.5cm
+  \caption{Epocha 5}
+  \label{fig:epoch-5}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/epochs/e09}\vskip-0.5cm
+  \caption{Epocha 9}
+  \label{fig:epoch-9}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/epochs/e17}\vskip-0.5cm
+  \caption{Epocha 17}
+  \label{fig:epoch-17}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/epochs/e25}\vskip-0.5cm
+  \caption{Epocha 25}
+  \label{fig:epoch-25}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/epochs/e34}\vskip-0.5cm
+  \caption{Epocha 34}
+  \label{fig:epoch-34}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/epochs/e42}\vskip-0.5cm
+  \caption{Epocha 42}
+  \label{fig:epoch-42}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering\leavevmode
+  \includegraphics[width=1\linewidth]{img/epochs/e50}\vskip-0.5cm
+  \caption{Epocha 50}
+  \label{fig:epoch-50}
+\end{figure}
+
+\end{document}
